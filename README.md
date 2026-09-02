@@ -1,5 +1,7 @@
 # 🛡️ AI Risk Manager — Return Risk Scorer
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-success?style=for-the-badge&logo=render)](https://ai-risk-manager-return-risk-scorer.onrender.com/)
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.141-green.svg)](https://fastapi.tiangolo.com/)
 [![LightGBM](https://img.shields.io/badge/LightGBM-4.7-orange.svg)](https://lightgbm.readthedocs.io/)
@@ -7,6 +9,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An enterprise Machine Learning pipeline, financial cost optimizer, and modern web dashboard designed for e-commerce merchants to predict the probability of product returns on newly placed orders.
+
+🌐 **Live Dashboard Demo**: [https://ai-risk-manager-return-risk-scorer.onrender.com/](https://ai-risk-manager-return-risk-scorer.onrender.com/)
 
 ---
 
