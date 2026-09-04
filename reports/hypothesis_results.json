@@ -2,53 +2,53 @@
   "hypothesis_summary": {
     "hypothesis": "Customer historical return behavior predicts future order return risk.",
     "validated": true,
-    "multi_feature_gain_auc": 0.0849,
-    "conclusion_text": "Historical return rate provides predictive signal (Baseline ROC-AUC = 0.5055). Adding product, order, and device features increases ROC-AUC to 0.5904 (+0.0849 gain)."
+    "multi_feature_gain_auc": 0.0797,
+    "conclusion_text": "Historical return rate provides predictive signal (Baseline ROC-AUC = 0.5144). Adding point-in-time product, order, and device features increases ROC-AUC to 0.5941 (+0.0797 gain)."
   },
   "binned_analysis": [
     {
       "bin": "0-10%",
-      "total_orders": 26273,
-      "actual_returns": 12023,
-      "actual_return_rate": 0.4576
+      "total_orders": 26427,
+      "actual_returns": 12200,
+      "actual_return_rate": 0.4616
     },
     {
       "bin": "10-20%",
-      "total_orders": 47115,
-      "actual_returns": 22310,
-      "actual_return_rate": 0.4735
+      "total_orders": 47079,
+      "actual_returns": 22202,
+      "actual_return_rate": 0.4716
     },
     {
       "bin": "20-30%",
-      "total_orders": 35280,
-      "actual_returns": 16889,
-      "actual_return_rate": 0.4787
+      "total_orders": 35097,
+      "actual_returns": 16838,
+      "actual_return_rate": 0.4798
     },
     {
       "bin": "30-50%",
-      "total_orders": 24246,
-      "actual_returns": 11794,
-      "actual_return_rate": 0.4864
+      "total_orders": 24213,
+      "actual_returns": 11734,
+      "actual_return_rate": 0.4846
     },
     {
       "bin": "50%+",
-      "total_orders": 6327,
-      "actual_returns": 3096,
-      "actual_return_rate": 0.4893
+      "total_orders": 6426,
+      "actual_returns": 3165,
+      "actual_return_rate": 0.4925
     }
   ],
   "baseline_metrics": {
     "model": "Baseline (past_return_rate only)",
-    "accuracy": 0.5239,
-    "f1": 0.042,
-    "roc_auc": 0.5055,
-    "log_loss": 0.6919
+    "accuracy": 0.525,
+    "f1": 0.0342,
+    "roc_auc": 0.5144,
+    "log_loss": 0.6917
   },
   "full_model_metrics": {
     "model": "Full Feature Model (Customer + Product + Order + Shipping)",
-    "accuracy": 0.5708,
-    "f1": 0.491,
-    "roc_auc": 0.5904,
-    "log_loss": 0.6787
+    "accuracy": 0.5723,
+    "f1": 0.4924,
+    "roc_auc": 0.5941,
+    "log_loss": 0.6779
   }
 }

@@ -20,21 +20,21 @@ FEATURE_DISPLAY_MAP = {
     'view_to_session_ratio': 'Product Engagement Ratio',
     'customer_age': 'Customer Age',
     'used_coupon': 'Coupon Code Usage',
-    'festival_risk_factor': 'Festival / Seasonal Event Risk Factor',
-    'category_base_risk': 'Category Historical Return Risk',
-    'shipping_base_risk': 'Shipping Method Risk Factor',
+    'category_hist_return_rate': 'Point-in-Time Category Return Rate',
+    'shipping_hist_return_rate': 'Point-in-Time Shipping Return Rate',
+    'product_tier_hist_return_rate': 'Point-in-Time Product Tier Return Rate',
     'device_type_desktop': 'Desktop Device Risk',
     'device_type_mobile': 'Mobile Device Risk',
     'device_type_tablet': 'Tablet Device Risk',
-    'product_category_beauty': 'Beauty Category',
+    'product_category_beauty': 'Beauty Category Risk',
     'product_category_clothing': 'Clothing Category Risk',
-    'product_category_electronics': 'Electronics Category',
-    'product_category_home': 'Home Goods Category',
-    'product_category_sports': 'Sports Category',
-    'product_category_toys': 'Toys Category',
+    'product_category_electronics': 'Electronics Category Risk',
+    'product_category_home': 'Home Goods Category Risk',
+    'product_category_sports': 'Sports Category Risk',
+    'product_category_toys': 'Toys Category Risk',
     'shipping_method_express': 'Express Shipping Risk',
-    'shipping_method_same_day': 'Same-Day Shipping',
-    'shipping_method_standard': 'Standard Shipping',
+    'shipping_method_same_day': 'Same-Day Shipping Risk',
+    'shipping_method_standard': 'Standard Shipping Risk',
     'payment_method_apple_pay': 'Apple Pay Payment Method',
     'payment_method_credit_card': 'Credit Card Payment',
     'payment_method_debit_card': 'Debit Card Payment',
@@ -54,6 +54,12 @@ class RiskExplainer:
         self.feature_names = joblib.load(os.path.join(models_dir, "feature_names.joblib"))
         self.model = joblib.load(os.path.join(models_dir, "best_model.joblib"))
         
+        hist_stats_path = os.path.join(models_dir, "historical_stats.joblib")
+        if os.path.exists(hist_stats_path):
+            self.historical_stats = joblib.load(hist_stats_path)
+        else:
+            self.historical_stats = None
+        
         if hasattr(self.model, 'feature_importances_'):
             self.base_importances = self.model.feature_importances_
         elif hasattr(self.model, 'coef_'):
@@ -62,18 +68,15 @@ class RiskExplainer:
             self.base_importances = np.ones(len(self.feature_names)) / len(self.feature_names)
 
     def explain_order(self, row_dict, return_probability=None):
-        from src.feature_engineering import add_engineered_features, FESTIVAL_RISK_MULTIPLIERS
+        from src.feature_engineering import add_engineered_features
         df = pd.DataFrame([row_dict])
-        eng_df = add_engineered_features(df)
+        eng_df = add_engineered_features(df, historical_stats=self.historical_stats)
         
         X_mat = self.preprocessor.transform(eng_df)
         
         if return_probability is None:
-            raw_prob = float(self.model.predict_proba(X_mat)[0, 1])
-            # Apply festival multiplier if specified
-            occasion = str(row_dict.get('occasion_period', 'none')).lower()
-            mult = FESTIVAL_RISK_MULTIPLIERS.get(occasion, 1.0)
-            return_probability = min(0.99, max(0.01, raw_prob * mult))
+            # Pure model prediction probability (No hardcoded multipliers)
+            return_probability = float(self.model.predict_proba(X_mat)[0, 1])
             
         is_insufficient = bool(eng_df['insufficient_history'].values[0] == 1)
         
@@ -99,16 +102,6 @@ class RiskExplainer:
                 "feature": display_name,
                 "impact": impact,
                 "attribution_score": round(attr_val, 4)
-            })
-
-        # Append occasion feature explicitly if festival is selected
-        occasion = str(row_dict.get('occasion_period', 'none')).lower()
-        if occasion != 'none':
-            occ_title = occasion.replace('_', ' ').title()
-            risk_factors.insert(0, {
-                "feature": f"Festival Period ({occ_title})",
-                "impact": "HIGH" if occasion in ['diwali_sale', 'wedding_season'] else "MEDIUM",
-                "attribution_score": 0.15
             })
 
         # Determine risk category & recommendation

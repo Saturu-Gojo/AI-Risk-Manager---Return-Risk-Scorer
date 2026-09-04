@@ -16,27 +16,22 @@ def load_raw_data(data_dir="."):
     test_df = pd.read_csv(test_path)
     return train_df, test_df
 
-def split_train_val_test(train_df, target_col="returned", test_size=0.15, val_size=0.15, random_state=42):
+def split_train_val_test(train_df, target_col="returned", test_size=0.15, val_size=0.15):
     """
-    Splits train_df into 70% Train, 15% Validation, and 15% Internal Test set using stratified splitting.
+    Splits train_df into 70% Train, 15% Validation, and 15% Internal Test set chronologically (temporal split) based on order_id.
     """
-    train_val, internal_test = train_test_split(
-        train_df, 
-        test_size=test_size, 
-        stratify=train_df[target_col], 
-        random_state=random_state
-    )
+    # Sort chronologically by order_id
+    sorted_df = train_df.sort_values("order_id").reset_index(drop=True)
+    n = len(sorted_df)
     
-    val_relative_size = val_size / (1.0 - test_size)
+    train_end = int(n * (1.0 - val_size - test_size))
+    val_end = int(n * (1.0 - test_size))
     
-    train, val = train_test_split(
-        train_val,
-        test_size=val_relative_size,
-        stratify=train_val[target_col],
-        random_state=random_state
-    )
+    train = sorted_df.iloc[:train_end].reset_index(drop=True)
+    val = sorted_df.iloc[train_end:val_end].reset_index(drop=True)
+    internal_test = sorted_df.iloc[val_end:].reset_index(drop=True)
     
-    return train.reset_index(drop=True), val.reset_index(drop=True), internal_test.reset_index(drop=True)
+    return train, val, internal_test
 
 if __name__ == "__main__":
     train_df, test_df = load_raw_data()

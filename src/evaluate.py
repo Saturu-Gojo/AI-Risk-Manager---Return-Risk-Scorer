@@ -89,17 +89,17 @@ def run_detailed_evaluation(models_dir="saved_models", reports_dir="reports", fp
     model = joblib.load(os.path.join(models_dir, "best_model.joblib"))
     
     raw_train, _ = load_raw_data()
-    _, val_df, test_df = split_train_val_test(raw_train)
+    raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
+    train_df, val_df, test_df = split_train_val_test(raw_train_sorted)
     
-    val_eng = add_engineered_features(val_df)
-    test_eng = add_engineered_features(test_df)
+    full_eng = add_engineered_features(raw_train_sorted)
+    n_train = len(train_df)
+    n_val = len(val_df)
     
-    X_val = preprocessor.transform(val_eng)
+    test_eng = full_eng.iloc[n_train + n_val:].reset_index(drop=True)
     X_test = preprocessor.transform(test_eng)
     
-    y_val = val_df['returned'].values
     y_test = test_df['returned'].values
-    
     test_probs = model.predict_proba(X_test)[:, 1]
     
     # Financial cost analysis

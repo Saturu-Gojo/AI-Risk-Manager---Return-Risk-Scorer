@@ -1,14 +1,14 @@
 {
   "best_model_name": "LightGBM",
-  "best_validation_roc_auc": 0.5948,
+  "best_validation_roc_auc": 0.5978,
   "models_evaluated": [
     "Logistic Regression",
     "Random Forest",
     "LightGBM",
     "XGBoost"
   ],
-  "feature_count": 34,
-  "train_rows": 139999,
-  "val_rows": 30001,
+  "feature_count": 36,
+  "train_rows": 140000,
+  "val_rows": 30000,
   "test_rows": 30000
 }

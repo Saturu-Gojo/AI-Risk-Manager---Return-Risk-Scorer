@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 import lightgbm as lgb
 import xgboost as xgb
 from sklearn.metrics import (
@@ -16,7 +16,8 @@ from sklearn.metrics import (
 
 from src.data_loader import load_raw_data, split_train_val_test
 from src.feature_engineering import (
-    add_engineered_features, build_preprocessor, get_feature_names
+    add_engineered_features, build_preprocessor, get_feature_names,
+    extract_historical_lookup_stats
 )
 
 def evaluate_predictions(y_true, y_probs, threshold=0.5):
@@ -52,18 +53,28 @@ def evaluate_predictions(y_true, y_probs, threshold=0.5):
     }
 
 def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
-    """Trains multiple model families, evaluates performance, and saves models & artifacts."""
+    """Trains multiple model families using temporal split & point-in-time historical features."""
     os.makedirs(models_dir, exist_ok=True)
     os.makedirs(reports_dir, exist_ok=True)
     
-    print("1. Loading raw dataset and performing 70-15-15 split...")
+    print("1. Loading raw dataset and performing temporal 70-15-15 split...")
     raw_train, raw_test = load_raw_data()
-    train_df, val_df, test_df = split_train_val_test(raw_train)
+    raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
+    train_df, val_df, test_df = split_train_val_test(raw_train_sorted)
     
-    print("2. Performing feature engineering...")
-    train_eng = add_engineered_features(train_df)
-    val_eng = add_engineered_features(val_df)
-    test_eng = add_engineered_features(test_df)
+    print("2. Extracting point-in-time historical features (No future information leakage)...")
+    full_eng = add_engineered_features(raw_train_sorted)
+    
+    n_train = len(train_df)
+    n_val = len(val_df)
+    
+    train_eng = full_eng.iloc[:n_train].reset_index(drop=True)
+    val_eng = full_eng.iloc[n_train:n_train + n_val].reset_index(drop=True)
+    test_eng = full_eng.iloc[n_train + n_val:].reset_index(drop=True)
+    
+    # Save lookup stats from training set for single API predictions
+    historical_stats = extract_historical_lookup_stats(train_df)
+    joblib.dump(historical_stats, os.path.join(models_dir, "historical_stats.joblib"))
     
     print("3. Building and fitting feature preprocessor...")
     preprocessor, num_cols, cat_cols = build_preprocessor()
@@ -78,7 +89,7 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
     feature_names = get_feature_names(preprocessor, num_cols, cat_cols)
     print(f"Features dimension: {X_train.shape[1]} features extracted.")
     
-    # Save preprocessor
+    # Save preprocessor artifacts
     joblib.dump(preprocessor, os.path.join(models_dir, "preprocessor.joblib"))
     joblib.dump(feature_names, os.path.join(models_dir, "feature_names.joblib"))
     
@@ -98,7 +109,6 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
         print(f"\n--- Training {model_name} ---")
         model.fit(X_train, y_train)
         
-        # Predict probabilities
         val_probs = model.predict_proba(X_val)[:, 1]
         test_probs = model.predict_proba(X_test)[:, 1]
         
@@ -110,7 +120,6 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
             "test_metrics": test_metrics
         }
         
-        # Save model checkpoint
         safe_filename = model_name.lower().replace(" ", "_") + ".joblib"
         joblib.dump(model, os.path.join(models_dir, safe_filename))
         
@@ -122,7 +131,6 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
             best_model_name = model_name
             joblib.dump(model, os.path.join(models_dir, "best_model.joblib"))
             
-    # Save meta information
     meta_info = {
         "best_model_name": best_model_name,
         "best_validation_roc_auc": best_roc_auc,

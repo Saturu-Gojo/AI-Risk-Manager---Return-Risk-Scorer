@@ -139,8 +139,14 @@ def recalculate_cost_threshold(req: CostCalculationRequest):
     preprocessor = joblib.load(os.path.join(MODELS_DIR, "preprocessor.joblib"))
     model = joblib.load(os.path.join(MODELS_DIR, "best_model.joblib"))
     raw_train, _ = load_raw_data()
-    _, _, test_df = split_train_val_test(raw_train)
-    test_eng = add_engineered_features(test_df)
+    raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
+    train_df, val_df, test_df = split_train_val_test(raw_train_sorted)
+    
+    full_eng = add_engineered_features(raw_train_sorted)
+    n_train = len(train_df)
+    n_val = len(val_df)
+    test_eng = full_eng.iloc[n_train + n_val:].reset_index(drop=True)
+    
     X_test = preprocessor.transform(test_eng)
     y_test = test_df['returned'].values
     test_probs = model.predict_proba(X_test)[:, 1]

@@ -14,17 +14,19 @@ def run_hypothesis_test(output_dir="reports"):
     'A customer's historical return behavior is predictive of whether their next order will be returned.'
     """
     os.makedirs(output_dir, exist_ok=True)
-    train_df, _ = load_raw_data()
-    train, val, test = split_train_val_test(train_df)
+    raw_train, _ = load_raw_data()
+    raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
+    train, val, test = split_train_val_test(raw_train_sorted)
     
     # 1. Binned analysis on Train set
-    train['rate_bin'] = pd.cut(
-        train['past_return_rate'], 
+    train_copy = train.copy()
+    train_copy['rate_bin'] = pd.cut(
+        train_copy['past_return_rate'], 
         bins=[-0.01, 0.10, 0.20, 0.30, 0.50, 1.00],
         labels=['0-10%', '10-20%', '20-30%', '30-50%', '50%+']
     )
     
-    bin_stats = train.groupby('rate_bin', observed=False)['returned'].agg(
+    bin_stats = train_copy.groupby('rate_bin', observed=False)['returned'].agg(
         total_orders='count',
         returns='sum',
         actual_return_rate='mean'
@@ -58,9 +60,13 @@ def run_hypothesis_test(output_dir="reports"):
         "log_loss": round(float(log_loss(y_val, baseline_probs)), 4)
     }
     
-    # 3. Full Feature Baseline comparison
-    train_eng = add_engineered_features(train)
-    val_eng = add_engineered_features(val)
+    # 3. Full Feature Baseline comparison with Point-in-time historical features
+    full_eng = add_engineered_features(raw_train_sorted)
+    n_train = len(train)
+    n_val = len(val)
+    
+    train_eng = full_eng.iloc[:n_train].reset_index(drop=True)
+    val_eng = full_eng.iloc[n_train:n_train + n_val].reset_index(drop=True)
     
     prep, num_cols, cat_cols = build_preprocessor()
     X_train_full = prep.fit_transform(train_eng)
@@ -79,7 +85,6 @@ def run_hypothesis_test(output_dir="reports"):
         "log_loss": round(float(log_loss(y_val, full_probs)), 4)
     }
     
-    # Summary hypothesis status
     auc_diff = full_metrics['roc_auc'] - baseline_metrics['roc_auc']
     hypothesis_conclusion = {
         "hypothesis": "Customer historical return behavior predicts future order return risk.",
@@ -87,7 +92,7 @@ def run_hypothesis_test(output_dir="reports"):
         "multi_feature_gain_auc": round(float(auc_diff), 4),
         "conclusion_text": (
             f"Historical return rate provides predictive signal (Baseline ROC-AUC = {baseline_metrics['roc_auc']:.4f}). "
-            f"Adding product, order, and device features increases ROC-AUC to {full_metrics['roc_auc']:.4f} "
+            f"Adding point-in-time product, order, and device features increases ROC-AUC to {full_metrics['roc_auc']:.4f} "
             f"(+{auc_diff:.4f} gain)."
         )
     }

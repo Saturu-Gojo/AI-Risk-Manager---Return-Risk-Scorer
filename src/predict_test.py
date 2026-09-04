@@ -5,20 +5,22 @@ import pandas as pd
 import numpy as np
 
 from src.data_loader import load_raw_data
-from src.feature_engineering import add_engineered_features, CATEGORY_RETURN_RATES
+from src.feature_engineering import add_engineered_features
 
 def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_predictions.csv", reports_dir="reports"):
     """
-    Fast vectorized batch prediction on 50,000 test orders.
+    Fast vectorized batch prediction on 50,000 test orders using point-in-time historical features.
     """
-    print("Loading test.csv dataset (50,000 orders)...")
-    _, test_df = load_raw_data()
+    print("Loading raw train and test.csv datasets...")
+    raw_train, test_df = load_raw_data()
     
     preprocessor = joblib.load(os.path.join(models_dir, "preprocessor.joblib"))
     model = joblib.load(os.path.join(models_dir, "best_model.joblib"))
+    historical_stats = joblib.load(os.path.join(models_dir, "historical_stats.joblib"))
     
-    print("Performing feature engineering...")
-    test_eng = add_engineered_features(test_df)
+    print("Performing point-in-time feature engineering for test set...")
+    # Perform feature engineering using historical statistics derived from training timeline
+    test_eng = add_engineered_features(test_df, historical_stats=historical_stats)
     X_test = preprocessor.transform(test_eng)
     
     print("Running model inference...")
@@ -26,6 +28,8 @@ def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_p
     
     test_df['return_probability'] = np.round(test_probs, 4)
     test_df['risk_score_percent'] = np.round(test_probs * 100, 1)
+    test_df['category_hist_return_rate'] = test_eng['category_hist_return_rate']
+    test_df['shipping_hist_return_rate'] = test_eng['shipping_hist_return_rate']
     
     # Insufficient history condition
     insufficient = (test_df['past_purchase_count'] <= 2) | (test_df['num_product_views'] <= 2)
@@ -56,7 +60,7 @@ def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_p
     test_df['risk_category'] = test_df.apply(assign_category, axis=1)
     test_df['recommendation'] = test_df['risk_category'].apply(assign_recommendation)
     
-    # Vectorized Top Risk Factor calculation
+    # Vectorized Top Risk Factor calculation based on derived historical data
     def build_factors(row):
         factors = []
         if row['past_return_rate'] > 0.30:
@@ -65,10 +69,10 @@ def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_p
             factors.append("Delivery Delay (HIGH)")
         if row['discount_percent'] > 50.0:
             factors.append("High Discount % (MEDIUM)")
-        if row['product_category'] in ['clothing', 'toys']:
-            factors.append(f"Elevated Category Risk - {row['product_category'].title()} (MEDIUM)")
-        if row['shipping_method'] == 'express':
-            factors.append("Express Shipping Risk (MEDIUM)")
+        if row['category_hist_return_rate'] > 0.48:
+            factors.append(f"Elevated Category Risk - {str(row['product_category']).title()} (MEDIUM)")
+        if row['shipping_hist_return_rate'] > 0.48:
+            factors.append(f"Elevated Shipping Risk - {str(row['shipping_method']).title()} (MEDIUM)")
             
         if not factors:
             factors.append("Standard Order Profile (LOW)")
