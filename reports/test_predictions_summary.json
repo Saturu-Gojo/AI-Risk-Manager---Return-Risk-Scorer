@@ -1,14 +1,14 @@
 {
   "total_test_orders": 50000,
   "risk_category_distribution": {
-    "MEDIUM": 47829,
-    "LOW": 1787,
-    "HIGH": 330,
+    "MEDIUM": 45655,
+    "LOW": 3359,
+    "HIGH": 932,
     "INSUFFICIENT DATA": 54
   },
-  "average_return_probability": 0.4731,
-  "median_return_probability": 0.4714,
-  "min_probability": 0.2299,
-  "max_probability": 0.7299,
+  "average_return_probability": 0.4733,
+  "median_return_probability": 0.4723,
+  "min_probability": 0.1338,
+  "max_probability": 0.8251,
   "output_csv_path": "test_predictions.csv"
 }

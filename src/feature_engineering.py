@@ -131,8 +131,8 @@ def compute_point_in_time_historical_features(df, historical_stats=None):
 
 def add_engineered_features(df, historical_stats=None):
     """
-    Adds domain interactions, ratios, exception flags, and point-in-time historical features.
-    No hardcoded risk multipliers used.
+    Adds domain interactions, ratios, festival timing indicators, and point-in-time historical features.
+    No hardcoded risk multipliers or category return rates used.
     """
     data = df.copy()
     
@@ -147,10 +147,26 @@ def add_engineered_features(df, historical_stats=None):
     data['view_to_session_ratio'] = data['num_product_views'] / (data['session_length_minutes'] + 1.0)
     data['delay_severity'] = data['delivery_delay_days'].apply(lambda x: max(0.0, float(x)))
     
-    # 2. Compute Point-in-time Historical Features
+    # 2. Organic Festival Timing Features (Let model learn predictive weight)
+    if 'is_festival_period' not in data.columns:
+        data['is_festival_period'] = (data['occasion_period'].astype(str).str.lower() != 'none').astype(int)
+        
+    if 'days_to_festival' not in data.columns:
+        festival_days_map = {
+            'diwali_sale': 2.0,
+            'christmas_newyear': 3.0,
+            'wedding_season': 5.0,
+            'flash_sale': 0.0,
+            'none': 30.0
+        }
+        data['days_to_festival'] = data['occasion_period'].apply(
+            lambda o: float(festival_days_map.get(str(o).lower(), 30.0))
+        )
+        
+    # 3. Compute Point-in-time Historical Features
     data = compute_point_in_time_historical_features(data, historical_stats=historical_stats)
     
-    # 3. Exception Indicator Flag: Insufficient Historical Data
+    # 4. Exception Indicator Flag: Insufficient Historical Data
     data['insufficient_history'] = (
         (data['past_purchase_count'] <= 2) | (data['num_product_views'] <= 2)
     ).astype(int)
@@ -162,6 +178,7 @@ def build_preprocessor():
     all_num_cols = NUMERICAL_COLS + [
         'expected_returns', 'discount_amount', 'effective_price',
         'view_to_session_ratio', 'delay_severity',
+        'is_festival_period', 'days_to_festival',
         'category_hist_return_rate', 'shipping_hist_return_rate', 'product_tier_hist_return_rate',
         'insufficient_history'
     ]

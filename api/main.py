@@ -57,6 +57,8 @@ class OrderInput(BaseModel):
     payment_method: str = Field(..., example="credit_card")
     used_coupon: int = Field(..., ge=0, le=1, example=1)
     occasion_period: Optional[str] = Field("none", example="diwali_sale")
+    is_festival_period: Optional[int] = Field(None, ge=0, le=1, example=1)
+    days_to_festival: Optional[float] = Field(None, ge=0, example=2.0)
 
 class CostCalculationRequest(BaseModel):
     fp_cost: float = Field(20.0, gt=0, example=20.0)

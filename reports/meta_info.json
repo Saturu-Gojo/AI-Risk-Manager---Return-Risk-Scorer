@@ -7,7 +7,7 @@
     "LightGBM",
     "XGBoost"
   ],
-  "feature_count": 36,
+  "feature_count": 38,
   "train_rows": 140000,
   "val_rows": 30000,
   "test_rows": 30000

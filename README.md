@@ -95,7 +95,7 @@ Project2/
 │   └── app.js                 # Dashboard controller & interactive charts
 ├── src/
 │   ├── data_loader.py         # Data loading & 70-15-15 train/val/test split
-│   ├── feature_engineering.py # Domain feature engineering & festival maps
+│   ├── feature_engineering.py # Domain feature engineering, organic festival timing & point-in-time rates
 │   ├── hypothesis_test.py     # Hypothesis #1 empirical validation
 │   ├── train_models.py        # ML training & model checkpoint saver
 │   ├── evaluate.py            # ROC/PR curves & cost threshold matrix
