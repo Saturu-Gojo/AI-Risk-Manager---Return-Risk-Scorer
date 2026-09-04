@@ -21,8 +21,17 @@ E-commerce merchants suffer substantial financial losses due to product returns�
 **AI Risk Manager** scores incoming orders in real time, calculating:
 1. **Return Probability (0–100%)**
 2. **Risk Category**: `LOW`, `MEDIUM`, `HIGH`, or `INSUFFICIENT DATA`
-3. **SHAP Factor Breakdown**: Top 3 human-readable contributing risk factors per order.
+3. **SHAP / Feature Attribution Breakdown**: Top 3 human-readable contributing risk factors per order.
 4. **Actionable Advisory Recommendation**: Profit-optimizing merchant guidance (e.g., automated dispatch vs. manual review prior to shipping).
+
+---
+
+## ⏱️ Temporal Splitting & Leakage-Free Feature Architecture
+
+To prevent **future information leakage** and **target leakage**:
+1. **Chronological Temporal Splitting**: Orders are sorted strictly by `order_id` (0 to 249,999). The pipeline performs a sequential 70% Train, 15% Validation, and 15% Internal Test split without random shuffling across time.
+2. **Point-in-Time Historical Features**: For every order $i$, category history (`category_hist_return_rate`), shipping history (`shipping_hist_return_rate`), and product tier history (`product_tier_hist_return_rate`) are derived exclusively from orders occurring **BEFORE** order $i$ (`order_id < i`) with Laplace/Bayesian smoothing ($m=20$).
+3. **Organic Festival Timing (Zero Hardcoded Multipliers)**: Manually defined multipliers (e.g., `diwali_sale -> 1.15`) and static category return rates have been completely eliminated. Festival effects are modeled organically via `is_festival_period` (binary flag), `days_to_festival` (continuous proximity in days), and `occasion_period` categorical encoding, allowing ML models to learn predictive weights from temporal data without arbitrary assumptions.
 
 ---
 
@@ -30,27 +39,27 @@ E-commerce merchants suffer substantial financial losses due to product returns�
 
 > **Hypothesis #1**: *A customer's historical return behavior is predictive of whether their next order will be returned.*
 
-We benchmarked a single-feature baseline model against our full multi-feature architecture across 200,000 orders:
+We benchmarked a single-feature baseline model against our full multi-feature architecture on temporal splits across 200,000 orders:
 
 | Model Version | Features Included | Validation Accuracy | ROC-AUC | Log Loss |
 | :--- | :--- | :---: | :---: | :---: |
-| **Baseline Model** | `past_return_rate` only | 52.39% | 0.5055 | 0.6919 |
-| **Full ML Pipeline** | Customer + Product + Order + Shipping + Occasion | **57.12%** | **0.5948** | **0.6787** |
+| **Baseline Model** | `past_return_rate` only | 52.50% | 0.5144 | 0.6917 |
+| **Full ML Pipeline** | Customer + Product Tier + Order + Shipping + Organic Festival | **57.23%** | **0.5941** | **0.6779** |
 
-**Conclusion**: Historical return rate alone provides modest signal (AUC 0.5055). Combining customer return history with product category, discount %, delivery delay, shipping mode, and festival signals yields a **+0.0893 ROC-AUC improvement**.
+**Conclusion**: Historical return rate alone provides modest signal (AUC 0.5144). Combining customer return history with point-in-time product tier historical rates, discount %, delivery delay, shipping mode, and organic festival timing yields a **+0.0797 ROC-AUC improvement**.
 
 ---
 
 ## 📊 2. Machine Learning Architecture Comparison
 
-We trained and evaluated four classification models on 140,000 training orders and evaluated on 30,000 validation orders and 30,000 internal test orders:
+We trained and evaluated four classification models on 140,000 training orders and evaluated on 30,000 validation orders and 30,000 internal test orders using strict temporal splitting:
 
 | Model Architecture | Validation ROC-AUC | Test ROC-AUC | Accuracy | F1-Score | Brier Score |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 **LightGBM** *(Best Model)* | **0.5948** | **0.5924** | **57.12%** | **0.4957** | **0.2447** |
-| 🥈 **XGBoost** | 0.5928 | 0.5907 | 56.89% | 0.4932 | 0.2451 |
-| 🥉 **Random Forest** | 0.5930 | 0.5913 | 56.99% | 0.4749 | 0.2452 |
-| 🏅 **Logistic Regression** | 0.5904 | 0.5898 | 57.08% | 0.4910 | 0.2454 |
+| 🥇 **LightGBM** *(Best Model)* | **0.5978** | **0.5910** | **57.00%** | **0.4895** | **0.2418** |
+| 🥈 **XGBoost** | 0.5958 | 0.5896 | 57.27% | 0.4958 | 0.2421 |
+| 🥉 **Random Forest** | 0.5958 | 0.5889 | 57.08% | 0.4736 | 0.2424 |
+| 🏅 **Logistic Regression** | 0.5941 | 0.5873 | 57.23% | 0.4924 | 0.2425 |
 
 ---
 
@@ -60,15 +69,15 @@ Standard classifiers default to a `0.50` probability threshold. However, e-comme
 - **False Positive (FP) Cost**: ₹20 per manual review (review cost).
 - **False Negative (FN) Loss Cost**: ₹500 per missed return (reverse shipping & restocking loss).
 
-By sweeping decision thresholds (0.05 to 0.95), our optimizer identifies the **profit-maximizing threshold (0.20)**:
+By sweeping decision thresholds (0.05 to 0.95), our optimizer identifies the **profit-maximizing risk threshold**:
 
 ```text
 No ML System Baseline Cost : ₹7,118,500
 Default 0.50 Threshold Cost : ₹9,056,700
-Cost-Optimal (0.20) Cost   : ₹5,276,100
+Cost-Optimal Threshold      : ₹5,276,100
 --------------------------------------------------
-Total Financial Savings    : ₹1,842,400 (vs No ML)
-Savings vs Default 0.50    : ₹3,780,600
+Total Financial Savings     : ₹1,842,400 (vs No ML)
+Savings vs Default 0.50     : ₹3,780,600
 ```
 
 ---
@@ -77,9 +86,9 @@ Savings vs Default 0.50    : ₹3,780,600
 
 Predictions for all **50,000 held-out test orders** are exported to [`test_predictions.csv`](file:///c:/Users/Parth/OneDrive/Desktop/Project2/test_predictions.csv):
 
-- 🔴 **HIGH Risk (≥65%)**: 1,132 orders (2.3%)
-- 🟡 **MEDIUM Risk (35–65%)**: 45,402 orders (90.8%)
-- 🟢 **LOW Risk (<35%)**: 3,412 orders (6.8%)
+- 🟡 **MEDIUM Risk (35–65%)**: 45,655 orders (91.3%)
+- 🟢 **LOW Risk (<35%)**: 3,359 orders (6.7%)
+- 🔴 **HIGH Risk (≥65%)**: 932 orders (1.9%)
 - ℹ️ **INSUFFICIENT DATA**: 54 orders (0.1%)
 
 ---
@@ -94,14 +103,14 @@ Project2/
 │   ├── index.html             # Merchant Dashboard UI
 │   └── app.js                 # Dashboard controller & interactive charts
 ├── src/
-│   ├── data_loader.py         # Data loading & 70-15-15 train/val/test split
-│   ├── feature_engineering.py # Domain feature engineering, organic festival timing & point-in-time rates
+│   ├── data_loader.py         # Chronological temporal 70-15-15 split
+│   ├── feature_engineering.py # Point-in-time historical features & organic festival timing
 │   ├── hypothesis_test.py     # Hypothesis #1 empirical validation
 │   ├── train_models.py        # ML training & model checkpoint saver
 │   ├── evaluate.py            # ROC/PR curves & cost threshold matrix
-│   ├── explainability.py      # RiskExplainer & SHAP risk factor attributions
+│   ├── explainability.py      # RiskExplainer & feature attributions
 │   └── predict_test.py        # Batch inference on test.csv (50k orders)
-├── saved_models/              # Trained joblib model artifacts
+├── saved_models/              # Trained joblib model artifacts & historical stats
 ├── reports/                   # Performance JSON summaries & curve data
 ├── train.csv                  # 200,000 labeled training orders
 ├── test.csv                   # 50,000 unlabeled test orders
@@ -166,7 +175,7 @@ Project2/
 - `GET /api/hypothesis` — Returns Hypothesis #1 validation metrics & bin analysis.
 - `GET /api/metrics` — Model comparison tables (LightGBM, XGBoost, Random Forest, Logistic Regression).
 - `GET /api/evaluation` — Threshold sweep cost matrix & ROC/PR curve points.
-- `POST /api/predict` — Real-time order risk scoring, SHAP factors, and recommendations.
+- `POST /api/predict` — Real-time order risk scoring, feature attributions, and recommendations.
 - `POST /api/recalculate-cost` — Recalculates cost-optimal threshold given custom FP/FN unit costs.
 - `GET /api/sample-orders` — Returns representative test set sample orders.
 
