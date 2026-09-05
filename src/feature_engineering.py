@@ -5,7 +5,7 @@ from sklearn.compose import ColumnTransformer
 
 NUMERICAL_COLS = [
     'customer_age', 'product_price', 'discount_percent', 'product_rating',
-    'past_purchase_count', 'past_return_rate', 'delivery_delay_days',
+    'past_purchase_count', 'past_return_rate', 'shipping_delay',
     'session_length_minutes', 'num_product_views', 'used_coupon'
 ]
 
@@ -20,18 +20,22 @@ def clean_raw_data(df):
     Data quality issues found in train.csv:
     - 27,285 rows with negative product_price
     - 21,443 rows with negative num_product_views
-    - 78,564 rows (39%) with negative delivery_delay_days
+    - 78,564 rows (39%) with negative shipping_delay
     - 1,487 rows with negative session_length_minutes
     - 14,280 rows with product_rating < 1.0 and 3,831 with product_rating > 5.0
     - 1,686 rows with negative discount_percent
     """
     data = df.copy()
     
+    # Rename CSV column if present (backward compatibility with raw CSVs)
+    if 'delivery_delay_days' in data.columns and 'shipping_delay' not in data.columns:
+        data = data.rename(columns={'delivery_delay_days': 'shipping_delay'})
+    
     # Clamp physically bounded features
     data['product_price'] = data['product_price'].clip(lower=0.0)
     data['num_product_views'] = data['num_product_views'].clip(lower=0)
     data['session_length_minutes'] = data['session_length_minutes'].clip(lower=0.1)
-    data['delivery_delay_days'] = data['delivery_delay_days'].clip(lower=0.0)
+    data['shipping_delay'] = data['shipping_delay'].clip(lower=0).astype(int)
     data['product_rating'] = data['product_rating'].clip(lower=1.0, upper=5.0)
     data['discount_percent'] = data['discount_percent'].clip(lower=0.0, upper=100.0)
     data['past_return_rate'] = data['past_return_rate'].clip(lower=0.0, upper=1.0)
@@ -163,7 +167,7 @@ def add_engineered_features(df, historical_stats=None, m_cat=20.0, m_ship=20.0, 
     data['discount_amount'] = data['product_price'] * (data['discount_percent'] / 100.0)
     data['effective_price'] = data['product_price'] - data['discount_amount']
     data['view_to_session_ratio'] = data['num_product_views'] / (data['session_length_minutes'] + 1.0)
-    data['delay_severity'] = data['delivery_delay_days'].apply(lambda x: max(0.0, float(x)))
+    data['delay_severity'] = data['shipping_delay'].apply(lambda x: max(0, int(x)))
     
     # 2. New interaction features for better risk separation
     data['price_per_view'] = data['product_price'] / (data['num_product_views'] + 1)

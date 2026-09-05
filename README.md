@@ -33,7 +33,7 @@ The raw training dataset (`train.csv`, 200,000 orders) contained significant dat
 | Issue | Affected Rows | Fix Applied |
 | :--- | :---: | :--- |
 | Negative `product_price` | 27,285 (13.6%) | Clamped to ≥ 0 |
-| Negative `delivery_delay_days` | 78,564 (39.3%) | Clamped to ≥ 0 (early = no delay) |
+| Negative `shipping_delay` | 78,564 (39.3%) | Clamped to ≥ 0 (early = no delay) |
 | Negative `num_product_views` | 21,443 (10.7%) | Clamped to ≥ 0 |
 | `product_rating` out of [1, 5] | 18,111 (9.1%) | Clamped to [1.0, 5.0] |
 | Negative `session_length_minutes` | 1,487 (0.7%) | Clamped to ≥ 0.1 |

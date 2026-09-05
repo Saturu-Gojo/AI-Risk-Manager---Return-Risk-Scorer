@@ -229,7 +229,7 @@ async function scoreOrder() {
     past_return_rate: parseFloat(document.getElementById('field-return-rate').value) || 0.0,
     product_price: parseFloat(document.getElementById('field-price').value) || 50.0,
     discount_percent: parseFloat(document.getElementById('field-discount').value) || 0.0,
-    delivery_delay_days: parseFloat(document.getElementById('field-delay').value) || 0.0,
+    shipping_delay: parseInt(document.getElementById('field-delay').value) || 0,
     product_rating: parseFloat(document.getElementById('field-rating').value) || 4.2,
     session_length_minutes: parseFloat(document.getElementById('field-session').value) || 25.0,
     num_product_views: parseInt(document.getElementById('field-views').value) || 8,

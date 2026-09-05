@@ -48,7 +48,7 @@ class OrderInput(BaseModel):
     product_rating: float = Field(..., ge=1.0, le=5.0, example=4.2)
     past_purchase_count: int = Field(..., ge=0, example=12)
     past_return_rate: float = Field(..., ge=0.0, le=1.0, example=0.25)
-    delivery_delay_days: float = Field(..., ge=0, example=2.0)
+    shipping_delay: int = Field(..., ge=0, example=2)
     session_length_minutes: float = Field(..., ge=0.1, example=25.0)
     num_product_views: int = Field(..., ge=1, example=8)
     device_type: str = Field(..., example="mobile")

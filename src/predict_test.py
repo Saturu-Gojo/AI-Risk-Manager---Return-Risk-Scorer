@@ -65,7 +65,7 @@ def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_p
         factors = []
         if row['past_return_rate'] > 0.30:
             factors.append("High Customer Return Rate (HIGH)")
-        if row['delivery_delay_days'] > 2.0:
+        if row['shipping_delay'] > 2:
             factors.append("Delivery Delay (HIGH)")
         if row['discount_percent'] > 50.0:
             factors.append("High Discount % (MEDIUM)")

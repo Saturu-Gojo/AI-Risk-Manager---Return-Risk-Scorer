@@ -13,7 +13,7 @@ FEATURE_DISPLAY_MAP = {
     'discount_percent': 'Discount Percentage',
     'discount_amount': 'Discount Amount',
     'product_rating': 'Product Rating',
-    'delivery_delay_days': 'Delivery Delay (Days)',
+    'shipping_delay': 'Shipping Delay (Days)',
     'delay_severity': 'Excess Delivery Delay Severity',
     'session_length_minutes': 'User Session Length',
     'num_product_views': 'Product Views Count',
