@@ -21,8 +21,23 @@ E-commerce merchants suffer substantial financial losses due to product returns�
 **AI Risk Manager** scores incoming orders in real time, calculating:
 1. **Return Probability (0–100%)**
 2. **Risk Category**: `LOW`, `MEDIUM`, `HIGH`, or `INSUFFICIENT DATA`
-3. **SHAP / Feature Attribution Breakdown**: Top 3 human-readable contributing risk factors per order.
+3. **Feature Attribution Breakdown**: Top 3 human-readable contributing risk factors per order.
 4. **Actionable Advisory Recommendation**: Profit-optimizing merchant guidance (e.g., automated dispatch vs. manual review prior to shipping).
+
+---
+
+## 🧹 Data Cleaning Pipeline
+
+The raw training dataset (`train.csv`, 200,000 orders) contained significant data quality issues that were cleaned before model training:
+
+| Issue | Affected Rows | Fix Applied |
+| :--- | :---: | :--- |
+| Negative `product_price` | 27,285 (13.6%) | Clamped to ≥ 0 |
+| Negative `delivery_delay_days` | 78,564 (39.3%) | Clamped to ≥ 0 (early = no delay) |
+| Negative `num_product_views` | 21,443 (10.7%) | Clamped to ≥ 0 |
+| `product_rating` out of [1, 5] | 18,111 (9.1%) | Clamped to [1.0, 5.0] |
+| Negative `session_length_minutes` | 1,487 (0.7%) | Clamped to ≥ 0.1 |
+| Negative `discount_percent` | 1,686 (0.8%) | Clamped to [0, 100] |
 
 ---
 
@@ -31,7 +46,7 @@ E-commerce merchants suffer substantial financial losses due to product returns�
 To prevent **future information leakage** and **target leakage**:
 1. **Chronological Temporal Splitting**: Orders are sorted strictly by `order_id` (0 to 249,999). The pipeline performs a sequential 70% Train, 15% Validation, and 15% Internal Test split without random shuffling across time.
 2. **Point-in-Time Historical Features**: For every order $i$, category history (`category_hist_return_rate`), shipping history (`shipping_hist_return_rate`), and product tier history (`product_tier_hist_return_rate`) are derived exclusively from orders occurring **BEFORE** order $i$ (`order_id < i`) with Laplace/Bayesian smoothing ($m=20$).
-3. **Organic Festival Timing (Zero Hardcoded Multipliers)**: Manually defined multipliers (e.g., `diwali_sale -> 1.15`) and static category return rates have been completely eliminated. Festival effects are modeled organically via `is_festival_period` (binary flag), `days_to_festival` (continuous proximity in days), and `occasion_period` categorical encoding, allowing ML models to learn predictive weights from temporal data without arbitrary assumptions.
+3. **Engineered Interaction Features**: Domain-specific features like `price_per_view` (impulse buy indicator), `discount_to_rating_ratio` (discount on low-rated products), `is_high_discount` (>50% flag), and `log_product_price` (handles extreme price range) improve risk separation beyond raw features.
 
 ---
 
@@ -44,9 +59,9 @@ We benchmarked a single-feature baseline model against our full multi-feature ar
 | Model Version | Features Included | Validation Accuracy | ROC-AUC | Log Loss |
 | :--- | :--- | :---: | :---: | :---: |
 | **Baseline Model** | `past_return_rate` only | 52.50% | 0.5144 | 0.6917 |
-| **Full ML Pipeline** | Customer + Product Tier + Order + Shipping + Organic Festival | **57.23%** | **0.5941** | **0.6779** |
+| **Full ML Pipeline** | Customer + Product Tier + Order + Shipping | **57.16%** | **0.5947** | **0.6777** |
 
-**Conclusion**: Historical return rate alone provides modest signal (AUC 0.5144). Combining customer return history with point-in-time product tier historical rates, discount %, delivery delay, shipping mode, and organic festival timing yields a **+0.0797 ROC-AUC improvement**.
+**Conclusion**: Historical return rate alone provides modest signal (AUC 0.5144). Combining customer return history with point-in-time product tier historical rates, discount %, delivery delay, shipping mode, and interaction features yields a **+0.0803 ROC-AUC improvement**.
 
 ---
 
@@ -56,10 +71,10 @@ We trained and evaluated four classification models on 140,000 training orders a
 
 | Model Architecture | Validation ROC-AUC | Test ROC-AUC | Accuracy | F1-Score | Brier Score |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 **LightGBM** *(Best Model)* | **0.5978** | **0.5910** | **57.00%** | **0.4895** | **0.2418** |
-| 🥈 **XGBoost** | 0.5958 | 0.5896 | 57.27% | 0.4958 | 0.2421 |
-| 🥉 **Random Forest** | 0.5958 | 0.5889 | 57.08% | 0.4736 | 0.2424 |
-| 🏅 **Logistic Regression** | 0.5941 | 0.5873 | 57.23% | 0.4924 | 0.2425 |
+| 🥇 **LightGBM** *(Best Model)* | **0.5975** | **0.5925** | **56.99%** | **0.5497** | **0.2418** |
+| 🥈 **XGBoost** | 0.5955 | 0.5903 | 56.73% | 0.5486 | 0.2421 |
+| 🥉 **Logistic Regression** | 0.5947 | 0.5883 | 57.16% | 0.4929 | 0.2425 |
+| 🏅 **Random Forest** | 0.5927 | 0.5873 | 56.69% | 0.4737 | 0.2424 |
 
 ---
 
@@ -69,26 +84,17 @@ Standard classifiers default to a `0.50` probability threshold. However, e-comme
 - **False Positive (FP) Cost**: ₹20 per manual review (review cost).
 - **False Negative (FN) Loss Cost**: ₹500 per missed return (reverse shipping & restocking loss).
 
-By sweeping decision thresholds (0.05 to 0.95), our optimizer identifies the **profit-maximizing risk threshold**:
-
-```text
-No ML System Baseline Cost : ₹7,118,500
-Default 0.50 Threshold Cost : ₹9,056,700
-Cost-Optimal Threshold      : ₹5,276,100
---------------------------------------------------
-Total Financial Savings     : ₹1,842,400 (vs No ML)
-Savings vs Default 0.50     : ₹3,780,600
-```
+By sweeping decision thresholds (0.05 to 0.95), our optimizer identifies the **profit-maximizing risk threshold**.
 
 ---
 
 ## 📦 4. Held-out Test Dataset Predictions (`test.csv`)
 
-Predictions for all **50,000 held-out test orders** are exported to [`test_predictions.csv`](file:///c:/Users/Parth/OneDrive/Desktop/Project2/test_predictions.csv):
+Predictions for all **50,000 held-out test orders** are exported to `test_predictions.csv`:
 
-- 🟡 **MEDIUM Risk (35–65%)**: 45,655 orders (91.3%)
-- 🟢 **LOW Risk (<35%)**: 3,359 orders (6.7%)
-- 🔴 **HIGH Risk (≥65%)**: 932 orders (1.9%)
+- 🟡 **MEDIUM Risk (35–65%)**: 46,695 orders (93.4%)
+- 🟢 **LOW Risk (<35%)**: 1,641 orders (3.3%)
+- 🔴 **HIGH Risk (≥65%)**: 1,610 orders (3.2%)
 - ℹ️ **INSUFFICIENT DATA**: 54 orders (0.1%)
 
 ---
@@ -104,12 +110,13 @@ Project2/
 │   └── app.js                 # Dashboard controller & interactive charts
 ├── src/
 │   ├── data_loader.py         # Chronological temporal 70-15-15 split
-│   ├── feature_engineering.py # Point-in-time historical features & organic festival timing
+│   ├── feature_engineering.py # Data cleaning, point-in-time features & interaction features
 │   ├── hypothesis_test.py     # Hypothesis #1 empirical validation
-│   ├── train_models.py        # ML training & model checkpoint saver
+│   ├── train_models.py        # ML training with early stopping & model checkpoint saver
 │   ├── evaluate.py            # ROC/PR curves & cost threshold matrix
-│   ├── explainability.py      # RiskExplainer & feature attributions
-│   └── predict_test.py        # Batch inference on test.csv (50k orders)
+│   ├── explainability.py      # RiskExplainer & normalized feature attributions
+│   ├── predict_test.py        # Batch inference on test.csv (50k orders)
+│   └── tune_smoothing.py      # Bayesian smoothing hyperparameter sweep
 ├── saved_models/              # Trained joblib model artifacts & historical stats
 ├── reports/                   # Performance JSON summaries & curve data
 ├── train.csv                  # 200,000 labeled training orders
@@ -135,7 +142,7 @@ Project2/
 
 2. **Install required packages**:
    ```bash
-   pip install pandas numpy scikit-learn lightgbm xgboost shap fastapi uvicorn pydantic matplotlib seaborn
+   pip install -r requirements.txt
    ```
 
 3. **Run the FastAPI Server & Web Dashboard**:

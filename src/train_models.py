@@ -93,12 +93,28 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
     joblib.dump(preprocessor, os.path.join(models_dir, "preprocessor.joblib"))
     joblib.dump(feature_names, os.path.join(models_dir, "feature_names.joblib"))
     
-    # Define models to train
+    # Define models with optimized hyperparameters
     models = {
-        "Logistic Regression": LogisticRegression(max_iter=1000, C=1.0, random_state=42),
-        "Random Forest": RandomForestClassifier(n_estimators=150, max_depth=12, min_samples_leaf=5, n_jobs=-1, random_state=42),
-        "LightGBM": lgb.LGBMClassifier(n_estimators=200, learning_rate=0.05, num_leaves=31, max_depth=8, random_state=42, verbose=-1),
-        "XGBoost": xgb.XGBClassifier(n_estimators=200, learning_rate=0.05, max_depth=6, eval_metric='logloss', random_state=42, n_jobs=-1)
+        "Logistic Regression": LogisticRegression(
+            max_iter=1000, C=0.5, solver='lbfgs', random_state=42
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=300, max_depth=15, min_samples_leaf=10,
+            min_samples_split=20, max_features='sqrt',
+            n_jobs=-1, random_state=42
+        ),
+        "LightGBM": lgb.LGBMClassifier(
+            n_estimators=500, learning_rate=0.03, num_leaves=63, max_depth=8,
+            min_child_samples=50, subsample=0.8, colsample_bytree=0.8,
+            reg_alpha=0.1, reg_lambda=1.0, is_unbalance=True,
+            random_state=42, verbose=-1, n_jobs=-1
+        ),
+        "XGBoost": xgb.XGBClassifier(
+            n_estimators=500, learning_rate=0.03, max_depth=6,
+            min_child_weight=10, subsample=0.8, colsample_bytree=0.8,
+            reg_alpha=0.1, reg_lambda=1.0, scale_pos_weight=1.1,
+            eval_metric='logloss', random_state=42, n_jobs=-1
+        )
     }
     
     comparison_results = {}
@@ -107,7 +123,25 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
     
     for model_name, model in models.items():
         print(f"\n--- Training {model_name} ---")
-        model.fit(X_train, y_train)
+        
+        # Use early stopping for boosting models
+        if model_name == "LightGBM":
+            model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                callbacks=[
+                    lgb.early_stopping(stopping_rounds=30, verbose=True),
+                    lgb.log_evaluation(period=50)
+                ]
+            )
+        elif model_name == "XGBoost":
+            model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                verbose=50
+            )
+        else:
+            model.fit(X_train, y_train)
         
         val_probs = model.predict_proba(X_val)[:, 1]
         test_probs = model.predict_proba(X_test)[:, 1]
@@ -121,7 +155,7 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
         }
         
         safe_filename = model_name.lower().replace(" ", "_") + ".joblib"
-        joblib.dump(model, os.path.join(models_dir, safe_filename))
+        joblib.dump(model, os.path.join(models_dir, safe_filename), compress=3)
         
         print(f"{model_name} Validation ROC-AUC: {val_metrics['roc_auc']} | Accuracy: {val_metrics['accuracy']} | F1: {val_metrics['f1_score']}")
         print(f"{model_name} Test ROC-AUC: {test_metrics['roc_auc']} | Accuracy: {test_metrics['accuracy']} | F1: {test_metrics['f1_score']}")

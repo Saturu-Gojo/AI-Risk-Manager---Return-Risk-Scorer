@@ -237,8 +237,7 @@ async function scoreOrder() {
     product_category: document.getElementById('field-category').value,
     shipping_method: document.getElementById('field-shipping').value,
     payment_method: document.getElementById('field-payment').value,
-    device_type: document.getElementById('field-device').value,
-    occasion_period: document.getElementById('field-occasion') ? document.getElementById('field-occasion').value : 'none'
+    device_type: document.getElementById('field-device').value
   };
 
   try {
@@ -310,7 +309,6 @@ function loadPresetOrder(type) {
     document.getElementById('field-shipping').value = 'express';
     document.getElementById('field-payment').value = 'credit_card';
     document.getElementById('field-device').value = 'mobile';
-    if (document.getElementById('field-occasion')) document.getElementById('field-occasion').value = 'diwali_sale';
   } else if (type === 'low') {
     document.getElementById('field-age').value = 42;
     document.getElementById('field-purchases').value = 25;
@@ -326,7 +324,6 @@ function loadPresetOrder(type) {
     document.getElementById('field-shipping').value = 'standard';
     document.getElementById('field-payment').value = 'debit_card';
     document.getElementById('field-device').value = 'desktop';
-    if (document.getElementById('field-occasion')) document.getElementById('field-occasion').value = 'none';
   } else {
     // Insufficient / Low History Preset
     document.getElementById('field-age').value = 29;
@@ -343,7 +340,6 @@ function loadPresetOrder(type) {
     document.getElementById('field-shipping').value = 'standard';
     document.getElementById('field-payment').value = 'apple_pay';
     document.getElementById('field-device').value = 'mobile';
-    if (document.getElementById('field-occasion')) document.getElementById('field-occasion').value = 'none';
   }
   scoreOrder();
 }

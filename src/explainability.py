@@ -20,6 +20,10 @@ FEATURE_DISPLAY_MAP = {
     'view_to_session_ratio': 'Product Engagement Ratio',
     'customer_age': 'Customer Age',
     'used_coupon': 'Coupon Code Usage',
+    'price_per_view': 'Price-per-View Impulse Score',
+    'discount_to_rating_ratio': 'Discount-to-Rating Risk Ratio',
+    'is_high_discount': 'Deep Discount Flag (>50%)',
+    'log_product_price': 'Log Product Price',
     'category_hist_return_rate': 'Point-in-Time Category Return Rate',
     'shipping_hist_return_rate': 'Point-in-Time Shipping Return Rate',
     'product_tier_hist_return_rate': 'Point-in-Time Product Tier Return Rate',
@@ -39,11 +43,6 @@ FEATURE_DISPLAY_MAP = {
     'payment_method_credit_card': 'Credit Card Payment',
     'payment_method_debit_card': 'Debit Card Payment',
     'payment_method_paypal': 'PayPal Payment Method',
-    'occasion_period_diwali_sale': 'Diwali Festive Sale Peak',
-    'occasion_period_christmas_newyear': 'Christmas & New Year Shopping Peak',
-    'occasion_period_wedding_season': 'Wedding / Festive Season Demand',
-    'occasion_period_flash_sale': 'Flash / Clearance Sale Impulse Period',
-    'occasion_period_none': 'Standard Shopping Period',
     'insufficient_history': 'Insufficient Order History'
 }
 
@@ -83,9 +82,18 @@ class RiskExplainer:
 
         is_insufficient = bool(eng_df['insufficient_history'].values[0] == 1)
         
+        # Fixed attribution: use absolute values and normalize to proportional contribution
         x_row = np.nan_to_num(X_mat[0], nan=0.0)
         base_imp = np.nan_to_num(self.base_importances, nan=0.0)
-        attribution_scores = np.nan_to_num(x_row * base_imp, nan=0.0)
+        raw_attribution = np.abs(x_row * base_imp)
+        raw_attribution = np.nan_to_num(raw_attribution, nan=0.0)
+        
+        # Normalize so attributions sum to 1.0
+        total_attr = raw_attribution.sum()
+        if total_attr > 0:
+            attribution_scores = raw_attribution / total_attr
+        else:
+            attribution_scores = raw_attribution
         
         top_indices = np.argsort(attribution_scores)[::-1][:5]
         

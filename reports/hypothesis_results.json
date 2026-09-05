@@ -2,8 +2,8 @@
   "hypothesis_summary": {
     "hypothesis": "Customer historical return behavior predicts future order return risk.",
     "validated": true,
-    "multi_feature_gain_auc": 0.0797,
-    "conclusion_text": "Historical return rate provides predictive signal (Baseline ROC-AUC = 0.5144). Adding point-in-time product, order, and device features increases ROC-AUC to 0.5941 (+0.0797 gain)."
+    "multi_feature_gain_auc": 0.0803,
+    "conclusion_text": "Historical return rate provides predictive signal (Baseline ROC-AUC = 0.5144). Adding point-in-time product, order, and device features increases ROC-AUC to 0.5947 (+0.0803 gain)."
   },
   "binned_analysis": [
     {
@@ -46,9 +46,9 @@
   },
   "full_model_metrics": {
     "model": "Full Feature Model (Customer + Product + Order + Shipping)",
-    "accuracy": 0.5723,
-    "f1": 0.4924,
-    "roc_auc": 0.5941,
-    "log_loss": 0.6779
+    "accuracy": 0.5716,
+    "f1": 0.4929,
+    "roc_auc": 0.5947,
+    "log_loss": 0.6777
   }
 }

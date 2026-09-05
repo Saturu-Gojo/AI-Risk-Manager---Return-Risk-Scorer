@@ -15,8 +15,8 @@ from src.evaluate import compute_cost_optimization
 
 app = FastAPI(
     title="AI Risk Manager - Return Risk Scorer API",
-    description="Enterprise API for e-commerce order return risk prediction, financial cost optimization, festival seasonal risks, and explainability.",
-    version="1.1.0"
+    description="Enterprise API for e-commerce order return risk prediction, financial cost optimization, and explainability.",
+    version="2.0.0"
 )
 
 app.add_middleware(
@@ -43,22 +43,19 @@ def get_explainer():
 class OrderInput(BaseModel):
     order_id: Optional[int] = 10001
     customer_age: int = Field(..., ge=18, le=100, example=35)
-    product_price: float = Field(..., gt=0, example=120.0)
+    product_price: float = Field(..., ge=0, example=120.0)
     discount_percent: float = Field(..., ge=0, le=100, example=15.0)
     product_rating: float = Field(..., ge=1.0, le=5.0, example=4.2)
     past_purchase_count: int = Field(..., ge=0, example=12)
     past_return_rate: float = Field(..., ge=0.0, le=1.0, example=0.25)
-    delivery_delay_days: float = Field(..., example=2.0)
-    session_length_minutes: float = Field(..., gt=0, example=25.0)
+    delivery_delay_days: float = Field(..., ge=0, example=2.0)
+    session_length_minutes: float = Field(..., ge=0.1, example=25.0)
     num_product_views: int = Field(..., ge=1, example=8)
     device_type: str = Field(..., example="mobile")
     product_category: str = Field(..., example="clothing")
     shipping_method: str = Field(..., example="express")
     payment_method: str = Field(..., example="credit_card")
     used_coupon: int = Field(..., ge=0, le=1, example=1)
-    occasion_period: Optional[str] = Field("none", example="diwali_sale")
-    is_festival_period: Optional[int] = Field(None, ge=0, le=1, example=1)
-    days_to_festival: Optional[float] = Field(None, ge=0, example=2.0)
 
 class CostCalculationRequest(BaseModel):
     fp_cost: float = Field(20.0, gt=0, example=20.0)

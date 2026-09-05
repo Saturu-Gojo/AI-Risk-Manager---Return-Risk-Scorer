@@ -10,8 +10,35 @@ NUMERICAL_COLS = [
 ]
 
 CATEGORICAL_COLS = [
-    'device_type', 'product_category', 'shipping_method', 'payment_method', 'occasion_period'
+    'device_type', 'product_category', 'shipping_method', 'payment_method'
 ]
+
+def clean_raw_data(df):
+    """
+    Cleans raw input data by clamping out-of-range and physically impossible values.
+    
+    Data quality issues found in train.csv:
+    - 27,285 rows with negative product_price
+    - 21,443 rows with negative num_product_views
+    - 78,564 rows (39%) with negative delivery_delay_days
+    - 1,487 rows with negative session_length_minutes
+    - 14,280 rows with product_rating < 1.0 and 3,831 with product_rating > 5.0
+    - 1,686 rows with negative discount_percent
+    """
+    data = df.copy()
+    
+    # Clamp physically bounded features
+    data['product_price'] = data['product_price'].clip(lower=0.0)
+    data['num_product_views'] = data['num_product_views'].clip(lower=0)
+    data['session_length_minutes'] = data['session_length_minutes'].clip(lower=0.1)
+    data['delivery_delay_days'] = data['delivery_delay_days'].clip(lower=0.0)
+    data['product_rating'] = data['product_rating'].clip(lower=1.0, upper=5.0)
+    data['discount_percent'] = data['discount_percent'].clip(lower=0.0, upper=100.0)
+    data['past_return_rate'] = data['past_return_rate'].clip(lower=0.0, upper=1.0)
+    data['past_purchase_count'] = data['past_purchase_count'].clip(lower=0)
+    data['customer_age'] = data['customer_age'].clip(lower=18, upper=100)
+    
+    return data
 
 def extract_historical_lookup_stats(df, m_cat=20.0, m_ship=20.0, m_prod=15.0):
     """
@@ -125,37 +152,24 @@ def compute_point_in_time_historical_features(df, historical_stats=None, m_cat=2
 
 def add_engineered_features(df, historical_stats=None, m_cat=20.0, m_ship=20.0, m_prod=15.0):
     """
-    Adds domain interactions, ratios, festival timing indicators, and point-in-time historical features.
+    Cleans raw data, adds domain interactions, ratios, and point-in-time historical features.
     No hardcoded risk multipliers or category return rates used.
     """
-    data = df.copy()
+    # Step 0: Clean raw data (clamp out-of-range values)
+    data = clean_raw_data(df)
     
-    # Fill default occasion if missing
-    if 'occasion_period' not in data.columns:
-        data['occasion_period'] = 'none'
-        
-    # 1. Domain & Interaction features
+    # 1. Domain & Interaction features (original)
     data['expected_returns'] = data['past_purchase_count'] * data['past_return_rate']
     data['discount_amount'] = data['product_price'] * (data['discount_percent'] / 100.0)
     data['effective_price'] = data['product_price'] - data['discount_amount']
     data['view_to_session_ratio'] = data['num_product_views'] / (data['session_length_minutes'] + 1.0)
     data['delay_severity'] = data['delivery_delay_days'].apply(lambda x: max(0.0, float(x)))
     
-    # 2. Organic Festival Timing Features (Let model learn predictive weight)
-    if 'is_festival_period' not in data.columns:
-        data['is_festival_period'] = (data['occasion_period'].astype(str).str.lower() != 'none').astype(int)
-        
-    if 'days_to_festival' not in data.columns:
-        festival_days_map = {
-            'diwali_sale': 2.0,
-            'christmas_newyear': 3.0,
-            'wedding_season': 5.0,
-            'flash_sale': 0.0,
-            'none': 30.0
-        }
-        data['days_to_festival'] = data['occasion_period'].apply(
-            lambda o: float(festival_days_map.get(str(o).lower(), 30.0))
-        )
+    # 2. New interaction features for better risk separation
+    data['price_per_view'] = data['product_price'] / (data['num_product_views'] + 1)
+    data['discount_to_rating_ratio'] = data['discount_percent'] / (data['product_rating'] + 0.1)
+    data['is_high_discount'] = (data['discount_percent'] > 50.0).astype(int)
+    data['log_product_price'] = np.log1p(data['product_price'])
         
     # 3. Compute Point-in-time Historical Features
     data = compute_point_in_time_historical_features(
@@ -175,7 +189,7 @@ def build_preprocessor():
     all_num_cols = NUMERICAL_COLS + [
         'expected_returns', 'discount_amount', 'effective_price',
         'view_to_session_ratio', 'delay_severity',
-        'is_festival_period', 'days_to_festival',
+        'price_per_view', 'discount_to_rating_ratio', 'is_high_discount', 'log_product_price',
         'category_hist_return_rate', 'shipping_hist_return_rate', 'product_tier_hist_return_rate',
         'insufficient_history'
     ]
