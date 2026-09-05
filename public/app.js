@@ -212,18 +212,28 @@ async function recalculateCostOptimization() {
 
 // Single Order Real-Time Scorer
 async function scoreOrder() {
+  const circle = document.getElementById('result-circle');
+  const scoreVal = document.getElementById('result-score');
+  const scoreBadge = document.getElementById('result-badge');
+  const factorsContainer = document.getElementById('result-factors');
+  const recBox = document.getElementById('result-recommendation');
+
+  // Set loading state
+  if (scoreVal) scoreVal.innerText = "...";
+  if (scoreBadge) scoreBadge.innerText = "SCORING";
+
   const payload = {
     order_id: 10001,
-    customer_age: parseInt(document.getElementById('field-age').value),
-    past_purchase_count: parseInt(document.getElementById('field-purchases').value),
-    past_return_rate: parseFloat(document.getElementById('field-return-rate').value),
-    product_price: parseFloat(document.getElementById('field-price').value),
-    discount_percent: parseFloat(document.getElementById('field-discount').value),
-    delivery_delay_days: parseFloat(document.getElementById('field-delay').value),
-    product_rating: 4.2,
-    session_length_minutes: 25.0,
-    num_product_views: 8,
-    used_coupon: 1,
+    customer_age: parseInt(document.getElementById('field-age').value) || 30,
+    past_purchase_count: parseInt(document.getElementById('field-purchases').value) || 0,
+    past_return_rate: parseFloat(document.getElementById('field-return-rate').value) || 0.0,
+    product_price: parseFloat(document.getElementById('field-price').value) || 50.0,
+    discount_percent: parseFloat(document.getElementById('field-discount').value) || 0.0,
+    delivery_delay_days: parseFloat(document.getElementById('field-delay').value) || 0.0,
+    product_rating: parseFloat(document.getElementById('field-rating').value) || 4.2,
+    session_length_minutes: parseFloat(document.getElementById('field-session').value) || 25.0,
+    num_product_views: parseInt(document.getElementById('field-views').value) || 8,
+    used_coupon: parseInt(document.getElementById('field-coupon').value),
     product_category: document.getElementById('field-category').value,
     shipping_method: document.getElementById('field-shipping').value,
     payment_method: document.getElementById('field-payment').value,
@@ -237,19 +247,20 @@ async function scoreOrder() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) return;
+
+    if (!res.ok) {
+      if (scoreVal) scoreVal.innerText = "ERR";
+      if (scoreBadge) scoreBadge.innerText = "API ERROR";
+      if (recBox) recBox.innerText = `⚠️ API Error (${res.status}): Make sure the FastAPI backend is running via: python -m uvicorn api.main:app --reload`;
+      return;
+    }
+
     const result = await res.json();
-    
+
     // UI Update
-    const circle = document.getElementById('result-circle');
-    const scoreVal = document.getElementById('result-score');
-    const scoreBadge = document.getElementById('result-badge');
-    const factorsContainer = document.getElementById('result-factors');
-    const recBox = document.getElementById('result-recommendation');
-    
-    scoreVal.innerText = `${result.risk_score_percent}%`;
-    scoreBadge.innerText = result.risk_category;
-    
+    if (scoreVal) scoreVal.innerText = `${result.risk_score_percent}%`;
+    if (scoreBadge) scoreBadge.innerText = result.risk_category;
+
     if (result.risk_category === 'HIGH') {
       circle.style.borderColor = 'var(--risk-high)';
       circle.style.boxShadow = '0 0 24px rgba(244, 63, 94, 0.4)';
@@ -263,18 +274,23 @@ async function scoreOrder() {
       circle.style.borderColor = 'var(--risk-low)';
       circle.style.boxShadow = '0 0 24px rgba(16, 185, 129, 0.4)';
     }
-    
-    factorsContainer.innerHTML = result.main_risk_factors.map(f => `
-      <div class="factor-item">
-        <span style="font-size: 13px; font-weight: 500;">${f.feature}</span>
-        <span class="badge ${f.impact === 'HIGH' ? 'badge-high' : 'badge-medium'}">${f.impact} IMPACT</span>
-      </div>
-    `).join('');
-    
-    recBox.innerText = result.recommendation;
+
+    if (factorsContainer) {
+      factorsContainer.innerHTML = result.main_risk_factors.map(f => `
+        <div class="factor-item">
+          <span style="font-size: 13px; font-weight: 500;">${f.feature}</span>
+          <span class="badge ${f.impact === 'HIGH' ? 'badge-high' : 'badge-medium'}">${f.impact} IMPACT</span>
+        </div>
+      `).join('');
+    }
+
+    if (recBox) recBox.innerText = result.recommendation;
 
   } catch (err) {
     console.error("Error scoring order:", err);
+    if (scoreVal) scoreVal.innerText = "OFFLINE";
+    if (scoreBadge) scoreBadge.innerText = "NO SERVER";
+    if (recBox) recBox.innerText = "⚠️ Could not connect to API backend. Please run: python -m uvicorn api.main:app --reload and open http://127.0.0.1:8000";
   }
 }
 
@@ -286,8 +302,14 @@ function loadPresetOrder(type) {
     document.getElementById('field-price').value = 350.0;
     document.getElementById('field-discount').value = 55.0;
     document.getElementById('field-delay').value = 4.5;
+    document.getElementById('field-rating').value = 2.1;
+    document.getElementById('field-session').value = 8.0;
+    document.getElementById('field-views').value = 15;
+    document.getElementById('field-coupon').value = 1;
     document.getElementById('field-category').value = 'clothing';
     document.getElementById('field-shipping').value = 'express';
+    document.getElementById('field-payment').value = 'credit_card';
+    document.getElementById('field-device').value = 'mobile';
     if (document.getElementById('field-occasion')) document.getElementById('field-occasion').value = 'diwali_sale';
   } else if (type === 'low') {
     document.getElementById('field-age').value = 42;
@@ -296,12 +318,31 @@ function loadPresetOrder(type) {
     document.getElementById('field-price').value = 45.0;
     document.getElementById('field-discount').value = 10.0;
     document.getElementById('field-delay').value = 0.0;
+    document.getElementById('field-rating').value = 4.7;
+    document.getElementById('field-session').value = 35.0;
+    document.getElementById('field-views').value = 3;
+    document.getElementById('field-coupon').value = 0;
     document.getElementById('field-category').value = 'electronics';
     document.getElementById('field-shipping').value = 'standard';
+    document.getElementById('field-payment').value = 'debit_card';
+    document.getElementById('field-device').value = 'desktop';
     if (document.getElementById('field-occasion')) document.getElementById('field-occasion').value = 'none';
   } else {
+    // Insufficient / Low History Preset
+    document.getElementById('field-age').value = 29;
     document.getElementById('field-purchases').value = 1;
     document.getElementById('field-return-rate').value = 0.0;
+    document.getElementById('field-price').value = 85.0;
+    document.getElementById('field-discount').value = 5.0;
+    document.getElementById('field-delay').value = 0.0;
+    document.getElementById('field-rating').value = 4.2;
+    document.getElementById('field-session').value = 25.0;
+    document.getElementById('field-views').value = 1;
+    document.getElementById('field-coupon').value = 1;
+    document.getElementById('field-category').value = 'home';
+    document.getElementById('field-shipping').value = 'standard';
+    document.getElementById('field-payment').value = 'apple_pay';
+    document.getElementById('field-device').value = 'mobile';
     if (document.getElementById('field-occasion')) document.getElementById('field-occasion').value = 'none';
   }
   scoreOrder();

@@ -78,10 +78,14 @@ class RiskExplainer:
             # Pure model prediction probability (No hardcoded multipliers)
             return_probability = float(self.model.predict_proba(X_mat)[0, 1])
             
+        if np.isnan(return_probability) or np.isinf(return_probability):
+            return_probability = 0.45
+
         is_insufficient = bool(eng_df['insufficient_history'].values[0] == 1)
         
-        x_row = X_mat[0]
-        attribution_scores = x_row * self.base_importances
+        x_row = np.nan_to_num(X_mat[0], nan=0.0)
+        base_imp = np.nan_to_num(self.base_importances, nan=0.0)
+        attribution_scores = np.nan_to_num(x_row * base_imp, nan=0.0)
         
         top_indices = np.argsort(attribution_scores)[::-1][:5]
         
@@ -90,6 +94,8 @@ class RiskExplainer:
             feat_raw = self.feature_names[idx]
             display_name = FEATURE_DISPLAY_MAP.get(feat_raw, feat_raw.replace('_', ' ').title())
             attr_val = float(attribution_scores[idx])
+            if np.isnan(attr_val) or np.isinf(attr_val):
+                attr_val = 0.0
             
             if attr_val > 0.05:
                 impact = "HIGH"

@@ -590,6 +590,25 @@ ORDER INPUT ➔ FEATURE ENGINE ➔ LIGHTGBM ENSEMBLE ➔ SHAP EXPLAINER ➔ COST
                 <input type="number" step="0.1" id="field-delay" class="form-control" value="3.5">
               </div>
               <div class="form-group">
+                <label>Product Rating (1.0 – 5.0)</label>
+                <input type="number" step="0.1" min="1" max="5" id="field-rating" class="form-control" value="4.2">
+              </div>
+              <div class="form-group">
+                <label>Session Length (Minutes)</label>
+                <input type="number" step="0.1" min="1" id="field-session" class="form-control" value="25.0">
+              </div>
+              <div class="form-group">
+                <label>Product Views Count</label>
+                <input type="number" min="1" id="field-views" class="form-control" value="8">
+              </div>
+              <div class="form-group">
+                <label>Used Coupon</label>
+                <select id="field-coupon" class="form-control">
+                  <option value="1" selected>Yes</option>
+                  <option value="0">No</option>
+                </select>
+              </div>
+              <div class="form-group">
                 <label>Product Category</label>
                 <select id="field-category" class="form-control">
                   <option value="clothing" selected>Clothing</option>
@@ -645,8 +664,8 @@ ORDER INPUT ➔ FEATURE ENGINE ➔ LIGHTGBM ENSEMBLE ➔ SHAP EXPLAINER ➔ COST
           <div class="result-box">
             <div class="gauge-container">
               <div class="score-circle" id="result-circle">
-                <div class="score-val" id="result-score">78%</div>
-                <div class="score-lbl" id="result-badge">HIGH RISK</div>
+                <div class="score-val" id="result-score">--%</div>
+                <div class="score-lbl" id="result-badge">READY</div>
               </div>
             </div>
 
@@ -656,7 +675,7 @@ ORDER INPUT ➔ FEATURE ENGINE ➔ LIGHTGBM ENSEMBLE ➔ SHAP EXPLAINER ➔ COST
             </div>
 
             <div class="recommendation-box" id="result-recommendation">
-              🔴 High Return Risk: Review order prior to dispatch.
+              Click "Calculate Return Risk" or choose a preset above to calculate real-time probability.
             </div>
           </div>
         </div>
