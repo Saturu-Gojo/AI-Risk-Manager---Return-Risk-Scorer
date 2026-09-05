@@ -13,7 +13,7 @@ CATEGORICAL_COLS = [
     'device_type', 'product_category', 'shipping_method', 'payment_method', 'occasion_period'
 ]
 
-def extract_historical_lookup_stats(df):
+def extract_historical_lookup_stats(df, m_cat=20.0, m_ship=20.0, m_prod=15.0):
     """
     Extracts summary historical return statistics (category, shipping, product_tier)
     from a labeled dataset to be used for single real-time API order predictions.
@@ -29,22 +29,19 @@ def extract_historical_lookup_stats(df):
         
     global_mean = float(df['returned'].mean())
     
-    # Category return rates with Bayesian smoothing (m=20)
-    m_cat = 20.0
+    # Category return rates with Bayesian smoothing (m_cat)
     cat_stats = df.groupby('product_category')['returned'].agg(['sum', 'count'])
     cat_dict = {}
     for cat, row in cat_stats.iterrows():
         cat_dict[str(cat).lower()] = float((row['sum'] + m_cat * global_mean) / (row['count'] + m_cat))
         
-    # Shipping return rates with Bayesian smoothing (m=20)
-    m_ship = 20.0
+    # Shipping return rates with Bayesian smoothing (m_ship)
     ship_stats = df.groupby('shipping_method')['returned'].agg(['sum', 'count'])
     ship_dict = {}
     for ship, row in ship_stats.iterrows():
         ship_dict[str(ship).lower()] = float((row['sum'] + m_ship * global_mean) / (row['count'] + m_ship))
         
-    # Product tier return rates with Bayesian smoothing (m=15)
-    m_prod = 15.0
+    # Product tier return rates with Bayesian smoothing (m_prod)
     price_tiers = df['product_price'].apply(lambda p: round(float(p) / 20.0) * 20)
     product_tiers = df['product_category'].astype(str) + "_" + price_tiers.astype(str)
     prod_df = pd.DataFrame({'tier': product_tiers, 'returned': df['returned']})
@@ -60,7 +57,7 @@ def extract_historical_lookup_stats(df):
         'product_tier': prod_dict
     }
 
-def compute_point_in_time_historical_features(df, historical_stats=None):
+def compute_point_in_time_historical_features(df, historical_stats=None, m_cat=20.0, m_ship=20.0, m_prod=15.0):
     """
     Computes point-in-time expanding historical features (category, shipping, product tier return rates)
     strictly using orders BEFORE each order (order_id < i) with Laplace/Bayesian smoothing.
@@ -87,19 +84,16 @@ def compute_point_in_time_historical_features(df, historical_stats=None):
         global_prior = (global_cumsum + m_global * 0.45) / (global_cumcount + m_global)
         
         # 2. Category historical return rate before order i
-        m_cat = 20.0
         cat_cumsum = data.groupby('product_category')['returned'].transform(lambda s: s.shift(1).cumsum()).fillna(0)
         cat_cumcount = data.groupby('product_category').cumcount()
         data['category_hist_return_rate'] = (cat_cumsum + m_cat * global_prior) / (cat_cumcount + m_cat)
         
         # 3. Shipping historical return rate before order i
-        m_ship = 20.0
         ship_cumsum = data.groupby('shipping_method')['returned'].transform(lambda s: s.shift(1).cumsum()).fillna(0)
         ship_cumcount = data.groupby('shipping_method').cumcount()
         data['shipping_hist_return_rate'] = (ship_cumsum + m_ship * global_prior) / (ship_cumcount + m_ship)
         
         # 4. Product tier historical return rate before order i
-        m_prod = 15.0
         prod_cumsum = data.groupby('product_tier')['returned'].transform(lambda s: s.shift(1).cumsum()).fillna(0)
         prod_cumcount = data.groupby('product_tier').cumcount()
         data['product_tier_hist_return_rate'] = (prod_cumsum + m_prod * global_prior) / (prod_cumcount + m_prod)
@@ -129,7 +123,7 @@ def compute_point_in_time_historical_features(df, historical_stats=None):
         
     return data
 
-def add_engineered_features(df, historical_stats=None):
+def add_engineered_features(df, historical_stats=None, m_cat=20.0, m_ship=20.0, m_prod=15.0):
     """
     Adds domain interactions, ratios, festival timing indicators, and point-in-time historical features.
     No hardcoded risk multipliers or category return rates used.
@@ -164,7 +158,10 @@ def add_engineered_features(df, historical_stats=None):
         )
         
     # 3. Compute Point-in-time Historical Features
-    data = compute_point_in_time_historical_features(data, historical_stats=historical_stats)
+    data = compute_point_in_time_historical_features(
+        data, historical_stats=historical_stats,
+        m_cat=m_cat, m_ship=m_ship, m_prod=m_prod
+    )
     
     # 4. Exception Indicator Flag: Insufficient Historical Data
     data['insufficient_history'] = (
