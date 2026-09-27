@@ -460,7 +460,7 @@
       <div class="card">
         <div class="card-title">System Architecture Overview</div>
         <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px;">
-          The Return Risk Scorer processes incoming e-commerce orders through a multi-tier pipeline: extracting customer return history, product categories, delivery delay risks, and order attributes to calculate precise return probabilities, SHAP risk factor attributions, and economic cost-optimal decisions.
+          The Return Risk Scorer processes incoming e-commerce orders through a multi-tier pipeline: extracting customer return history, product categories, shipping delay risks, and order attributes to calculate precise return probabilities, SHAP risk factor attributions, and economic cost-optimal decisions.
         </p>
         <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-cyan); overflow-x: auto;">
 ORDER INPUT ➔ FEATURE ENGINE ➔ LIGHTGBM ENSEMBLE ➔ SHAP EXPLAINER ➔ COST-OPTIMAL THRESHOLD ➔ MERCHANT DASHBOARD
@@ -503,7 +503,7 @@ ORDER INPUT ➔ FEATURE ENGINE ➔ LIGHTGBM ENSEMBLE ➔ SHAP EXPLAINER ➔ COST
             </tbody>
           </table>
           <div style="margin-top: 20px; font-size: 13px; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 14px; border-radius: 8px;">
-            💡 <strong>Key Finding:</strong> Customer historical return rate alone yields a baseline ROC-AUC of ~0.5055. Incorporating product category, discount percent, shipping mode, device type, and delivery delay increases ROC-AUC to <strong>0.5948 (+0.0893 AUC gain)</strong>.
+            💡 <strong>Key Finding:</strong> Customer historical return rate alone yields a baseline ROC-AUC of ~0.5055. Incorporating product category, discount percent, shipping mode, device type, and shipping delay increases ROC-AUC to <strong>0.5948 (+0.0893 AUC gain)</strong>.
           </div>
         </div>
       </div>
@@ -634,6 +634,7 @@ ORDER INPUT ➔ FEATURE ENGINE ➔ LIGHTGBM ENSEMBLE ➔ SHAP EXPLAINER ➔ COST
                   <option value="credit_card">Credit Card</option>
                   <option value="debit_card">Debit Card</option>
                   <option value="paypal">PayPal</option>
+                  <option value="cod">Cash on Delivery</option>
                 </select>
               </div>
               <div class="form-group">

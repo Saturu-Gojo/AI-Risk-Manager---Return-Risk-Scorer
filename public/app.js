@@ -300,7 +300,7 @@ function loadPresetOrder(type) {
     document.getElementById('field-return-rate').value = 0.65;
     document.getElementById('field-price').value = 350.0;
     document.getElementById('field-discount').value = 55.0;
-    document.getElementById('field-delay').value = 4.5;
+    document.getElementById('field-delay').value = 5;
     document.getElementById('field-rating').value = 2.1;
     document.getElementById('field-session').value = 8.0;
     document.getElementById('field-views').value = 15;
@@ -315,7 +315,7 @@ function loadPresetOrder(type) {
     document.getElementById('field-return-rate').value = 0.05;
     document.getElementById('field-price').value = 45.0;
     document.getElementById('field-discount').value = 10.0;
-    document.getElementById('field-delay').value = 0.0;
+    document.getElementById('field-delay').value = 0;
     document.getElementById('field-rating').value = 4.7;
     document.getElementById('field-session').value = 35.0;
     document.getElementById('field-views').value = 3;
@@ -331,7 +331,7 @@ function loadPresetOrder(type) {
     document.getElementById('field-return-rate').value = 0.0;
     document.getElementById('field-price').value = 85.0;
     document.getElementById('field-discount').value = 5.0;
-    document.getElementById('field-delay').value = 0.0;
+    document.getElementById('field-delay').value = 0;
     document.getElementById('field-rating').value = 4.2;
     document.getElementById('field-session').value = 25.0;
     document.getElementById('field-views').value = 1;

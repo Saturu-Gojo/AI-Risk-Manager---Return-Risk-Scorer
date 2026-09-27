@@ -1,6 +1,4 @@
-import os
 import pandas as pd
-import numpy as np
 import lightgbm as lgb
 from sklearn.metrics import roc_auc_score, log_loss
 
@@ -20,7 +18,7 @@ def tune_smoothing_m():
     
     raw_train, _ = load_raw_data()
     raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
-    train_df, val_df, test_df = split_train_val_test(raw_train_sorted)
+    train_df, val_df, _ = split_train_val_test(raw_train_sorted)
     
     n_train = len(train_df)
     n_val = len(val_df)
@@ -39,7 +37,7 @@ def tune_smoothing_m():
         train_eng = full_eng.iloc[:n_train].reset_index(drop=True)
         val_eng = full_eng.iloc[n_train:n_train + n_val].reset_index(drop=True)
         
-        preprocessor, num_cols, cat_cols = build_preprocessor()
+        preprocessor, _, _ = build_preprocessor()
         X_train = preprocessor.fit_transform(train_eng)
         X_val = preprocessor.transform(val_eng)
         

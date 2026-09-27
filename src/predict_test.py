@@ -12,7 +12,11 @@ def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_p
     Fast vectorized batch prediction on 50,000 test orders using point-in-time historical features.
     """
     print("Loading raw train and test.csv datasets...")
-    raw_train, test_df = load_raw_data()
+    _, test_df = load_raw_data()
+    
+    # Rename CSV column for consistency
+    if 'delivery_delay_days' in test_df.columns:
+        test_df = test_df.rename(columns={'delivery_delay_days': 'shipping_delay'})
     
     preprocessor = joblib.load(os.path.join(models_dir, "preprocessor.joblib"))
     model = joblib.load(os.path.join(models_dir, "best_model.joblib"))
@@ -66,7 +70,7 @@ def generate_test_predictions_fast(models_dir="saved_models", output_csv="test_p
         if row['past_return_rate'] > 0.30:
             factors.append("High Customer Return Rate (HIGH)")
         if row['shipping_delay'] > 2:
-            factors.append("Delivery Delay (HIGH)")
+            factors.append("Shipping Delay (HIGH)")
         if row['discount_percent'] > 50.0:
             factors.append("High Discount % (MEDIUM)")
         if row['category_hist_return_rate'] > 0.48:

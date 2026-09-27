@@ -1,7 +1,6 @@
 import os
 import json
 import pandas as pd
-import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, log_loss
 
@@ -16,7 +15,7 @@ def run_hypothesis_test(output_dir="reports"):
     os.makedirs(output_dir, exist_ok=True)
     raw_train, _ = load_raw_data()
     raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
-    train, val, test = split_train_val_test(raw_train_sorted)
+    train, val, _ = split_train_val_test(raw_train_sorted)
     
     # 1. Binned analysis on Train set
     train_copy = train.copy()
@@ -68,7 +67,7 @@ def run_hypothesis_test(output_dir="reports"):
     train_eng = full_eng.iloc[:n_train].reset_index(drop=True)
     val_eng = full_eng.iloc[n_train:n_train + n_val].reset_index(drop=True)
     
-    prep, num_cols, cat_cols = build_preprocessor()
+    prep, _, _ = build_preprocessor()
     X_train_full = prep.fit_transform(train_eng)
     X_val_full = prep.transform(val_eng)
     

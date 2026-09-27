@@ -14,7 +14,7 @@ FEATURE_DISPLAY_MAP = {
     'discount_amount': 'Discount Amount',
     'product_rating': 'Product Rating',
     'shipping_delay': 'Shipping Delay (Days)',
-    'delay_severity': 'Excess Delivery Delay Severity',
+    'delay_severity': 'Excess Shipping Delay Severity',
     'session_length_minutes': 'User Session Length',
     'num_product_views': 'Product Views Count',
     'view_to_session_ratio': 'Product Engagement Ratio',
@@ -43,6 +43,7 @@ FEATURE_DISPLAY_MAP = {
     'payment_method_credit_card': 'Credit Card Payment',
     'payment_method_debit_card': 'Debit Card Payment',
     'payment_method_paypal': 'PayPal Payment Method',
+    'payment_method_cod': 'Cash on Delivery Payment',
     'insufficient_history': 'Insufficient Order History'
 }
 

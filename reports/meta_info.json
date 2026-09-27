@@ -1,6 +1,6 @@
 {
   "best_model_name": "LightGBM",
-  "best_validation_roc_auc": 0.5975,
+  "best_validation_roc_auc": 0.5977,
   "models_evaluated": [
     "Logistic Regression",
     "Random Forest",

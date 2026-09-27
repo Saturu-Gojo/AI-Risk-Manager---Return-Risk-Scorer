@@ -1,7 +1,6 @@
 import os
 import json
 import joblib
-import pandas as pd
 import numpy as np
 from sklearn.metrics import confusion_matrix, roc_curve, precision_recall_curve
 
@@ -106,8 +105,8 @@ def run_detailed_evaluation(models_dir="saved_models", reports_dir="reports", fp
     cost_analysis = compute_cost_optimization(y_test, test_probs, fp_cost=fp_cost, fn_cost=fn_cost)
     
     # ROC and PR points for frontend visualization
-    fpr, tpr, roc_thresh = roc_curve(y_test, test_probs)
-    precision, recall, pr_thresh = precision_recall_curve(y_test, test_probs)
+    fpr, tpr, _ = roc_curve(y_test, test_probs)
+    precision, recall, _ = precision_recall_curve(y_test, test_probs)
     
     # Downsample curve points for compact JSON
     step_roc = max(1, len(fpr) // 50)

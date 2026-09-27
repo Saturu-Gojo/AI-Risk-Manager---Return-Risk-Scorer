@@ -1,8 +1,6 @@
 import os
 import json
 import joblib
-import pandas as pd
-import numpy as np
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -58,7 +56,7 @@ def train_and_evaluate_all(models_dir="saved_models", reports_dir="reports"):
     os.makedirs(reports_dir, exist_ok=True)
     
     print("1. Loading raw dataset and performing temporal 70-15-15 split...")
-    raw_train, raw_test = load_raw_data()
+    raw_train, _ = load_raw_data()
     raw_train_sorted = raw_train.sort_values("order_id").reset_index(drop=True)
     train_df, val_df, test_df = split_train_val_test(raw_train_sorted)
     
